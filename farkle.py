@@ -1,100 +1,84 @@
 import random
 
-# Scoring rules
-SCORING_RULES = {
-    (1,): 100,
-    (5,): 50,
-    (1, 1, 1): 1000,
-    (2, 2, 2): 200,
-    (3, 3, 3): 300,
-    (4, 4, 4): 400,
-    (5, 5, 5): 500,
-    (6, 6, 6): 600,
-    (1, 2, 3, 4, 5, 6): 1500
-}
-
 def roll_dice(num=6):
-    """Roll a specified number of dice and return their values."""
     return tuple(random.randint(1, 6) for _ in range(num))
 
-def get_score(dice):
-    """Calculate the score for a given dice roll."""
+def calculate_score(dice):
+    # Scoring rules
     score = 0
-    dice_counts = {i: dice.count(i) for i in set(dice)}
+    counts = {i: dice.count(i) for i in set(dice)}
 
-    for combo, points in SCORING_RULES.items():
-        if all(dice_counts.get(d, 0) >= combo.count(d) for d in combo):
-            score += points
+    for num, count in counts.items():
+        if count >= 3:
+            if num == 1:
+                score += 1000
+            else:
+                score += num * 100
+            count -= 3
+
+        if num == 1:
+            score += count * 100
+        elif num == 5:
+            score += count * 50
 
     return score
 
 def player_turn():
-    """Execute the player's turn."""
+    current_roll = roll_dice()
     total_score = 0
-    dice_left = 6
 
-    while dice_left > 0:
-        roll = roll_dice(dice_left)
-        print(f"Current roll: {roll}")
+    while True:
+        print(f"Current roll: {current_roll}")
 
-        while True:
-            selected_values = input("Which dice do you want to keep? (enter space-separated numbers or 'done'): ").split()
-            if selected_values == ['done']:
-                return total_score
+        selected_values = input("Which dice do you want to keep? (enter space-separated numbers or 'done'): ").split()
 
-            selected_values = tuple(map(int, selected_values))
-            if set(selected_values).issubset(roll) and get_score(selected_values) > 0:
-                dice_left -= len(selected_values)
-                total_score += get_score(selected_values)
-                break
-            else:
-                print("The selected dice don't give any score. Try again.")
+        if 'done' in selected_values:
+            return total_score
 
-    return total_score
+        if not all(value.isdigit() for value in selected_values):
+            print("Please enter valid dice numbers or 'done'.")
+            continue
+
+        try:
+            selected_values = tuple(current_roll[int(val) - 1] for val in selected_values)
+            if len(set(selected_values)) != len(selected_values):
+                raise IndexError
+        except (ValueError, IndexError):
+            print("Invalid choice. Ensure you select dice numbers only from the current roll and don't duplicate. Try again.")
+            continue
+
+        score = calculate_score(selected_values)
+        if score == 0:
+            print("The selected dice don't give any score. Try again.")
+            continue
+
+        total_score += score
+        current_roll = roll_dice(len(current_roll) - len(selected_values))
+        if not current_roll:
+            return total_score
 
 def computer_turn():
-    """Execute the computer's turn."""
+    current_roll = roll_dice()
     total_score = 0
-    dice_left = 6
 
-    while total_score < 300 and dice_left > 0:
-        roll = roll_dice(dice_left)
-        score = get_score(roll)
+    while current_roll:
+        score = calculate_score(current_roll)
+        if score == 0:
+            return 0
         total_score += score
-        print(f"Computer rolled: {roll} - Score: {score}")
-        dice_left -= len(roll)  # assumes computer keeps all dice it rolls
+        current_roll = roll_dice(len(current_roll) - len(current_roll))
 
     return total_score
 
-def display_rules():
-    """Display the game rules and instructions."""
-    print("--- FARKLE RULES & INSTRUCTIONS ---")
-    print("Objective: Be the first to score 10,000 points.")
-    print("Gameplay:")
-    print("1. Roll all six dice.")
-    print("2. After each roll, choose the dice you want to keep (the ones that give you scores).")
-    print("3. You can continue rolling the remaining dice to accumulate more points, but if a roll results in zero points, you lose all points accumulated in that turn.")
-    print("4. You decide when to stop rolling and keep the points you've accumulated.")
-    print("\nScoring:")
-    for combo, score in SCORING_RULES.items():
-        print(f"{combo}: {score} points")
-    print("------------------------------------\n")
-
 def main():
-    """Main game loop."""
-    display_rules()
-
-    player_score, computer_score = 0, 0
-
-    while player_score < 10000 and computer_score < 10000:
+    player_score = 0
+    computer_score = 0
+    while True:
         player_score += player_turn()
         print(f"Your turn ended with {player_score} points.")
-        
         computer_score += computer_turn()
         print(f"Computer's turn ended with {computer_score} points.")
-
-    winner = "Player" if player_score >= 10000 else "Computer"
-    print(f"{winner} wins!")
+        print(f"Scores - Player: {player_score}, Computer: {computer_score}")
 
 if __name__ == "__main__":
     main()
