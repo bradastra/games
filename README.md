@@ -12,7 +12,7 @@ This repository contains fun and interactive Python games. Dive in and enjoy!
 
 ## Introduction
 
-This section can provide an overview of your motivation to create these games or any other information you'd like to share about the development process.
+Welcome to the games repository! This is a collection of delightful games, each carefully crafted to offer you a pleasant gaming experience. From classic games to new inventions, there's something here for everyone. Currently, our highlighted game is the time-honored dice game: Farkle. We hope you enjoy these games as much as we enjoyed creating them.
 
 ## Games List
 
@@ -25,7 +25,19 @@ _(Add more games as you create them!)_
 
 ### Farkle
 
-Write a brief description of how to play Farkle, or provide a link to the rules.
+Objective: The objective of Farkle is to score as many points as possible in ten rounds.
+
+How to Play:
+
+1. Roll the Dice: Begin each turn by rolling all six dice.
+2. Scoring: In our basic version, scoring is simplified. A 5 is worth 50 points and a 1 is worth 100 points. You need a minimum of 300 points in a round to start scoring.
+3. Continue or Stop: After rolling, you can choose to:
+Keep Rolling: Set aside any dice you want to keep for points, and then re-roll the remaining dice.
+4. Stop and Score: Stop rolling and add up your points for that round.
+5. Farkling: If you roll and don't score any points, you "farkle" and lose any points you've accumulated for that turn.
+6. End of Game: The game ends after ten rounds. The player with the highest score wins.
+
+_Tips: Strategy comes into play when deciding whether to continue rolling or to stop and score. As you keep rolling, there's a greater risk of farkling and losing points, but there's also the potential for a higher score. It's a balance of risk and reward!_
 
 ### Even or Odd
 
