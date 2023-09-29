@@ -1,7 +1,7 @@
 import random
 
-# Scoring rules
-SCORING = {
+# Farkle Scoring Rules
+SCORING_RULES = {
     (1,): 100,
     (5,): 50,
     (1, 1, 1): 1000,
@@ -10,119 +10,123 @@ SCORING = {
     (4, 4, 4): 400,
     (5, 5, 5): 500,
     (6, 6, 6): 600,
-    tuple(range(1, 7)): 1500  # straight
+    (1, 2, 3, 4, 5, 6): 1500
 }
 
+def roll_dice(num=6):
+    """Roll a specified number of dice (default is 6)."""
+    return [random.randint(1, 6) for _ in range(num)]
+
 def score(roll):
-    """Calculate score based on roll."""
-    total_score = 0
-    counts = {i: roll.count(i) for i in set(roll)}
+    """Calculate the score for a given roll."""
+    roll = tuple(sorted(roll))
+    return SCORING_RULES.get(roll, 0)
 
-    for combo, value in SCORING.items():
-        if all(counts.get(i, 0) >= combo.count(i) for i in combo):
-            total_score += value
-            for i in combo:
-                counts[i] -= combo.count(i)
-    
-    for combo, value in SCORING.items():
-        if len(combo) == 1 and counts.get(combo[0], 0):
-            total_score += counts[combo[0]] * value
+def is_farkle(roll):
+    """Determine if the roll is a Farkle (no points)."""
+    return all(score((die,)) == 0 for die in roll) and score(roll) == 0
 
-    return total_score
-
-def roll_dice(n):
-    """Roll n dice and return results."""
-    return tuple(random.randint(1, 6) for _ in range(n))
-
-def choose_dice_to_keep(roll):
-    """Let player choose dice to keep."""
-    print(f"You rolled: {roll}")
-    kept_dice = []
+def select_dice(roll):
+    """Let the player select which dice to keep."""
+    selected = []
     while True:
-        choice = input("Which dice do you want to keep? (enter the number or 'done'): ")
-        if choice == "done":
+        print(f"Current roll: {tuple(roll)}")
+        choice = input("Which dice do you want to keep? (enter space-separated numbers or 'done'): ").strip().lower()
+        if choice == 'done':
             break
-        if choice.isdigit() and int(choice) in roll:
-            kept_dice.append(int(choice))
-            roll = tuple(x for x in roll if x != int(choice))
-        else:
+        try:
+            # Convert the input into a tuple of integers
+            dice_to_keep = tuple(map(int, choice.split()))
+            
+            # Validate the chosen dice
+            if all(die in roll for die in dice_to_keep):
+                potential_score = score(dice_to_keep)
+                if potential_score > 0:
+                    for die in dice_to_keep:
+                        roll.remove(die)
+                    selected.extend(dice_to_keep)
+                else:
+                    print("The selected dice don't give any score. Try again.")
+            else:
+                print("Invalid choice. Try again.")
+        except ValueError:
             print("Invalid choice. Try again.")
-    return tuple(kept_dice)
+    return selected
 
 def player_turn():
-    """Player's turn."""
-    remaining_dice = 6
-    turn_score = 0
-    kept_dice = []
-
-    while remaining_dice > 0:
-        roll = roll_dice(remaining_dice)
-        roll_score = score(roll)
-        if roll_score == 0:
-            print(f"You rolled: {roll} - Farkle!")
+    """Handle the player's turn."""
+    total_score = 0
+    roll = roll_dice()
+    
+    while True:
+        if is_farkle(roll):
+            print(f"You rolled: {tuple(roll)} - Farkle!")
             return 0
         
-        kept = choose_dice_to_keep(roll)
-        if not kept:
-            print("No dice kept. Farkle!")
-            return 0
+        kept = select_dice(roll)
+        roll_score = score(kept)
+        total_score += roll_score
+        print(f"You kept: {tuple(kept)} for a score of {roll_score}")
         
-        kept_score = score(kept)
-        turn_score += kept_score
-        print(f"You kept: {kept} for a score of {kept_score}")
-
-        action = input("Keep total score (k) or roll again (r)? ").lower()
-        if action == "k":
-            return turn_score
+        if len(roll) == 0:
+            roll = roll_dice()
+            print("You've used all the dice! Rolling all dice again.")
         
-        kept_dice.extend(kept)
-        remaining_dice -= len(kept)
-        
-        if remaining_dice == 0:
-            remaining_dice = 6
+        action = input(f"Keep total score (k) or roll again (r)? ").strip().lower()
+        if action == 'k':
+            return total_score
+        elif action == 'r':
+            roll = roll_dice(len(roll))
 
 def computer_turn():
-    """Computer's turn."""
-    remaining_dice = 6
-    turn_score = 0
-
-    while remaining_dice > 0:
-        roll = roll_dice(remaining_dice)
-        roll_score = score(roll)
-
-        print(f"Computer rolled: {roll} - Score: {roll_score}")
-
-        if roll_score == 0:
-            print("Computer Farkle!")
+    """Handle the computer's turn."""
+    total_score = 0
+    roll = roll_dice()
+    
+    while total_score < 300:
+        if is_farkle(roll):
+            print(f"Computer rolled: {tuple(roll)} - Farkle!")
             return 0
         
-        if turn_score + roll_score > 300:
-            return turn_score + roll_score
-        else:
-            turn_score += roll_score
-            remaining_dice = 6
+        # Simple strategy for computer: keep all scoring dice
+        kept = [die for die in roll if score((die,)) > 0] or roll
+        roll_score = score(kept)
+        total_score += roll_score
+        print(f"Computer rolled: {tuple(roll)} - Score: {roll_score}")
+        
+        for die in kept:
+            roll.remove(die)
+        
+        if len(roll) == 0:
+            roll = roll_dice()
+    
+    return total_score
 
 def main():
     """Main game loop."""
     player_score = 0
     computer_score = 0
-
-    # Display the scoring rules
-    print("--- SCORING ---")
-    for combo, value in SCORING.items():
-        print(f"{combo}: {value} points")
+    
+    # Print scoring rules
+    print("\n--- SCORING ---")
+    for roll, roll_score in SCORING_RULES.items():
+        print(f"{roll}: {roll_score} points")
     print("--------------\n")
-
-    while player_score < 10000 and computer_score < 10000:
+    
+    while True:
         player_score += player_turn()
         computer_score += computer_turn()
-
+        
         print(f"Current Scores - Player: {player_score}, Computer: {computer_score}")
-
+        
+        if player_score >= 10000 or computer_score >= 10000:
+            break
+    
+    # Determine winner
     if player_score >= 10000:
-        print("You win!")
+        print("Congratulations! You won!")
     else:
-        print("Computer wins!")
+        print("Computer wins! Better luck next time.")
 
 if __name__ == "__main__":
     main()
