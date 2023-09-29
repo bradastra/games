@@ -13,6 +13,12 @@ SCORING = {
     tuple(range(1, 7)): 1500  # straight
 }
 
+def show_scoring():
+    print("\n--- SCORING ---")
+    for combo, value in SCORING.items():
+        print(f"{combo}: {value} points")
+    print("--------------\n")
+
 def score(roll):
     """Calculate score based on roll."""
     total_score = 0
@@ -26,7 +32,7 @@ def score(roll):
             # remove scored dice
             for i in combo:
                 counts[i] -= combo.count(i)
-    
+
     # Singles
     for combo, value in SCORING.items():
         if len(combo) == 1 and counts.get(combo[0], 0):
@@ -41,23 +47,28 @@ def roll_dice(n):
 def player_turn():
     remaining_dice = 6
     turn_score = 0
+    show_scoring()
 
     while remaining_dice > 0:
         roll = roll_dice(remaining_dice)
-        roll_score = score(roll)
+        selected = select_dice(roll)
+        current_roll_score = score(selected)
 
-        print(f"You rolled: {roll} - Score: {roll_score}")
-        
-        if roll_score == 0:
+        print(f"Selected dice: {selected} - Score: {current_roll_score}")
+
+        if current_roll_score == 0:
             print("Farkle!")
             return 0
 
-        action = input("Keep score (k) or roll again (r)? ").lower()
-        if action == "k":
-            return turn_score + roll_score
-        elif action == "r":
-            turn_score += roll_score
+        turn_score += current_roll_score
+        remaining_dice -= len(selected)
+
+        if remaining_dice == 0:  # All dice scored, so they get to roll all 6 again
             remaining_dice = 6
+
+        action = input(f"Turn score: {turn_score}. Keep score (k) or roll again (r)? ").lower()
+        if action == "k":
+            return turn_score
 
 def computer_turn():
     remaining_dice = 6
@@ -65,19 +76,24 @@ def computer_turn():
 
     while remaining_dice > 0:
         roll = roll_dice(remaining_dice)
-        roll_score = score(roll)
+        selected = [die for die in roll if die == 1 or die == 5 or roll.count(die) >= 3]  # basic strategy
+        current_roll_score = score(selected)
 
-        print(f"Computer rolled: {roll} - Score: {roll_score}")
+        print(f"Computer rolled: {roll}")
+        print(f"Computer selected: {selected} - Score: {current_roll_score}")
 
-        if roll_score == 0:
+        if current_roll_score == 0:
             print("Computer Farkle!")
             return 0
-        
-        if turn_score + roll_score > 300:
-            return turn_score + roll_score
-        else:
-            turn_score += roll_score
+
+        turn_score += current_roll_score
+        remaining_dice -= len(selected)
+
+        if remaining_dice == 0:
             remaining_dice = 6
+
+        if turn_score > 300:  # Computer's threshold to keep score
+            return turn_score
 
 def main():
     player_score = 0
@@ -86,13 +102,25 @@ def main():
     while player_score < 10000 and computer_score < 10000:
         player_score += player_turn()
         computer_score += computer_turn()
-
         print(f"Current Scores - Player: {player_score}, Computer: {computer_score}")
 
+    # If the player crosses 10,000, give the computer one last chance
     if player_score >= 10000:
-        print("You win!")
+        print("You reached 10,000!")
+        final_turn = computer_turn()
+        computer_score += final_turn
+
+    # Similarly, if the computer crosses 10,000, give the player one last chance
+    elif computer_score >= 10000:
+        print("Computer reached 10,000!")
+        final_turn = player_turn()
+        player_score += final_turn
+
+    # Check for the winner
+    if player_score > computer_score:
+        print(f"You win with {player_score} points!")
     else:
-        print("Computer wins!")
+        print(f"Computer wins with {computer_score} points!")
 
 if __name__ == "__main__":
     main()
