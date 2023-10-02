@@ -1,5 +1,21 @@
+# Farkle Game - Version 1.0
+
 import random
 import time
+
+# Game rules & scoring
+RULES = """Rules & Scoring:
+1: 100 points
+5: 50 points
+Three 1's: 1000 points
+Three 2's: 200 points
+Three 3's: 300 points
+Three 4's: 400 points
+Three 5's: 500 points
+Three 6's: 600 points
+Four or more of any number: Double the three of a kind score for each extra number.
+Press 'r' anytime during the game to see these rules again.
+"""
 
 # Scoring rules
 SCORING_RULES = {
@@ -29,7 +45,7 @@ SCORING_RULES = {
     (4, 4, 4, 4, 4, 4): 2000,
     (5, 5, 5, 5, 5, 5): 2200,
     (6, 6, 6, 6, 6, 6): 2400,
-    (1, 2, 3, 4, 5, 6): 1500,
+    (1, 2, 3, 4, 5, 6): 1500, # Run: 1, 2, 3, 4, 5, 6
     (1, 1, 2, 2, 3, 3): 1500,
     (4, 4, 5, 5, 6, 6): 1500
 }
@@ -40,7 +56,6 @@ def roll_dice(num=6):
 def calculate_score(dice):
     dice = sorted(dice)
     score = 0
-    used_dice = []
     for combination, combination_score in sorted(SCORING_RULES.items(), key=lambda x: len(x[0]), reverse=True):
         while all(dice.count(die) >= combination.count(die) for die in combination):
             score += combination_score
@@ -69,10 +84,10 @@ def player_turn():
         print(f"\nYou rolled: {rolled_dice}")
 
         kept_dice = choose_dice_to_keep(rolled_dice)
-
         score_this_roll = calculate_score(kept_dice)
+
         if score_this_roll == 0:
-            print("Farkle! You lose all points from this turn.")
+            print("Farkle!")
             return 0
 
         total_turn_score += score_this_roll
@@ -80,14 +95,42 @@ def player_turn():
 
         for die in kept_dice:
             rolled_dice.remove(die)
-
         remaining_dice -= len(kept_dice)
+
         if not remaining_dice:
             remaining_dice = 6
 
         action = input("\nDo you want to (P)ass or (R)oll again? ").upper()
         if action == 'P':
             return total_turn_score
+
+# Enhanced computer strategy
+def computer_play(total_score, player_score):
+    remaining_dice = 6
+    turn_score = 0
+    while remaining_dice > 0:
+        roll = roll_dice(remaining_dice)
+        print(f"\nComputer rolled: {roll}")
+        time.sleep(2)
+
+        scoring_dice = [d for d in roll if d == 1 or d == 5]
+        if not scoring_dice:
+            print("\nFarkle!\n")
+            return 0
+
+        score_this_roll = calculate_score(scoring_dice)
+        turn_score += score_this_roll
+        for d in scoring_dice:
+            roll.remove(d)
+            remaining_dice -= 1
+
+        if not remaining_dice:
+            remaining_dice = 6
+
+        print(f"Computer kept: {scoring_dice} - Current turn score: {turn_score}")
+        time.sleep(1)
+
+    return turn_score
 
 def computer_turn():
     remaining_dice = 6
@@ -118,10 +161,8 @@ def computer_turn():
     return turn_score
 
 def display_rules():
-    # Display rules as previously defined
     print("\nWelcome to Farkle!")
-    print("Here are the basic rules:")
-    # You can fill in other rules or scoring details here.
+    print(RULES)
 
 def main():
     display_rules()
@@ -130,9 +171,21 @@ def main():
     while True:
         player_score += player_turn()
         print(f"\nYour total score: {player_score}")
-        computer_score += computer_turn()
+
+        # Adaptive strategy switch
+        if computer_score < player_score - 500:
+            computer_score += computer_play(computer_score, player_score)
+        else:
+            computer_score += computer_turn()
         print(f"Computer's total score: {computer_score}")
-        
+
+        # Check if the player wants to view the rules
+        action = input("Press 'r' to see rules, 'x' to exit, or any other key to continue: ").lower()
+        if action == 'r':
+            display_rules()
+        elif action == 'x':
+            break
+
         if player_score > 10000 or computer_score > 10000:
             break
 
@@ -143,4 +196,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
