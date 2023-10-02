@@ -1,11 +1,7 @@
 import random
 import time
 
-# Constants for scoring thresholds and win condition
-ENTRY_THRESHOLD = 500
-WINNING_SCORE = 10000
-
-# Scoring rules
+# Define scoring rules
 SCORING_RULES = {
     (1,): 100,
     (5,): 50,
@@ -16,93 +12,112 @@ SCORING_RULES = {
     (5, 5, 5): 500,
     (6, 6, 6): 600,
     (1, 2, 3, 4, 5, 6): 1500,
-    (2, 3, 4, 5, 6, 6): 2500  # two triplets
+    # Adding the more complex rules
+    # Four of a kind, five of a kind, six of a kind
+    (1, 1, 1, 1): 2000,
+    (1, 1, 1, 1, 1): 3000,
+    (1, 1, 1, 1, 1, 1): 4000
 }
 
-def roll_dice(n):
-    """Roll n dice and return the result as a tuple."""
-    return tuple(random.randint(1, 6) for _ in range(n))
+def roll_dice(num=6):
+    return tuple(random.choice(range(1, 7)) for _ in range(num))
 
 def calculate_score(dice):
-    """Calculate the score for a given dice combination."""
-    dice = list(dice)
     score = 0
     for combo, combo_score in SCORING_RULES.items():
-        while all(combo.count(die) <= dice.count(die) for die in combo):
+        if all(dice.count(d) >= combo.count(d) for d in combo):
             score += combo_score
-            for die in combo:
-                dice.remove(die)
     return score
 
-def computer_turn_strategy(roll, computer_score, player_score):
-    """Determine which dice the computer should keep."""
-    score = calculate_score(roll)
-    dice_left = len(roll)
-    
-    # Always keep dice if it's a high scoring roll
-    if score >= 500:
-        return roll
-    
-    # If computer is trailing, take more risk
-    if computer_score < player_score:
-        if dice_left >= 4:
-            return [die for die in roll if die == 1 or die == 5]
-        if dice_left == 3 and (1 in roll or 5 in roll):
-            return roll
-    else:
-        if dice_left >= 5:
-            return [die for die in roll if die == 1 or die == 5]
-        if dice_left == 4 and (1 in roll or 5 in roll):
-            return roll
+def computer_turn(total_score):
+    remaining_dice = 6
+    turn_score = 0
+    while remaining_dice > 0:
+        roll = roll_dice(remaining_dice)
+        print(f"Computer rolled: {roll}")
+        time.sleep(1)
 
-    # If none of the conditions are met, keep everything
-    return roll
+        # Find all scoring dice
+        scoring_dice = [d for d in roll if calculate_score((d,)) > 0]
+        if not scoring_dice:
+            return 0
+
+        # Decide to keep rolling or stop based on some simple strategy
+        if total_score + turn_score < 500:
+            # Always roll if not in the game yet
+            turn_score += calculate_score(roll)
+        elif len(scoring_dice) > 3 or random.random() < 0.5:
+            # Take a risk if there's a good number of scoring dice or 50% chance
+            turn_score += calculate_score(roll)
+        else:
+            # Otherwise end the turn
+            return turn_score
+
+        # Remove scoring dice and continue
+        for d in scoring_dice:
+            roll = list(roll)
+            roll.remove(d)
+            remaining_dice -= 1
+
+        print(f"Computer kept: {scoring_dice}")
+        time.sleep(1)
+
+    return turn_score
+
+def player_turn():
+    remaining_dice = 6
+    turn_score = 0
+    while remaining_dice > 0:
+        roll = roll_dice(remaining_dice)
+        print(f"Current roll: {roll}")
+        
+        choices = input("Which dice do you want to keep? (enter space-separated numbers or 'done'): ").split()
+        if "done" in choices:
+            break
+
+        # Calculate score based on player's choices
+        chosen_dice = tuple(map(int, choices))
+        turn_score += calculate_score(chosen_dice)
+
+        # Remove chosen dice and continue
+        for d in chosen_dice:
+            roll = list(roll)
+            roll.remove(d)
+            remaining_dice -= 1
+
+    return turn_score
+
+def display_rules():
+    print("The scoring rules are:")
+    for combo, score in SCORING_RULES.items():
+        print(f"{combo}: {score} points")
+    print("\nThe first player to reach 10,000 points wins!\n")
 
 def main():
-    player_score = 0
-    computer_score = 0
-    in_game = False
-
+    player_score, computer_score = 0, 0
     print("Welcome to Farkle!")
-    play_choice = input("Would you like to play? (yes/no): ").lower()
-
-    if play_choice != "yes":
-        print("Thanks for stopping by!")
+    play_choice = input("Would you like to play? (yes/no): ")
+    if play_choice.lower() != "yes":
         return
 
-    while player_score < WINNING_SCORE and computer_score < WINNING_SCORE:
-        # Player's turn
+    display_rules()
+
+    while player_score < 10000 and computer_score < 10000:
         print("\nYour turn!")
-        dice = roll_dice(6)
-        print(f"Current roll: {dice}")
-        kept_dice = list(map(int, input("Which dice do you want to keep? (enter space-separated numbers or 'done'): ").split()))
-        
-        if not kept_dice:
-            print("You rolled a Farkle!")
-            continue
+        player_score += player_turn()
+        print(f"Your total score: {player_score}")
+        if player_score >= 10000:
+            break
 
-        player_score += calculate_score(kept_dice)
-        if player_score >= ENTRY_THRESHOLD:
-            in_game = True
-
-        # Computer's turn
         print("\nComputer's turn!")
-        dice = roll_dice(6)
-        print(f"Computer rolled: {dice}")
-        time.sleep(2)  # Pause for 2 seconds to let the player see the roll
-        
-        kept_dice = computer_turn_strategy(dice, computer_score, player_score)
-        
-        computer_score += calculate_score(kept_dice)
-        print(f"Computer kept: {kept_dice}")
-        time.sleep(2)  # Pause for 2 seconds to let the player see the kept dice
-        
+        computer_score += computer_turn(computer_score)
         print(f"Computer's total score: {computer_score}")
 
-    if player_score >= WINNING_SCORE:
-        print("\nCongratulations! You won!")
+    print("Game over!")
+    if player_score > computer_score:
+        print("Congratulations! You win!")
     else:
-        print("\nSorry, the computer won!")
+        print("Computer wins!")
 
 if __name__ == "__main__":
     main()
