@@ -103,27 +103,42 @@ def player_turn():
         if action == 'P':
             return total_turn_score
 
-def enhanced_computer_turn(player_score, computer_score):
-    total_turn_score = 0
-    remaining_dice = 6
-    while True:
-        rolled_dice = roll_dice(remaining_dice)
-        print(f"\nComputer rolled: {rolled_dice}")
-        time.sleep(2)
+def enhanced_computer_turn():
+    dice = 6
+    total_round_score = 0
 
-        potential_score = calculate_score(rolled_dice)
-        if potential_score == 0:
+    while dice:
+        roll = roll_dice(dice)
+        print(f"\nComputer rolled: {roll}")
+        possible_scores = calculate_possible_scores(roll)
+        
+        if not possible_scores:
             print("Computer got a Farkle!")
             return 0
 
-        # Strategy: If the roll's score is below 300 or if the computer is trailing, it might take a risk and roll again.
-        if potential_score < 300 or computer_score + total_turn_score < player_score:
-            print(f"Computer decides to roll again despite getting {potential_score} in this roll.")
-            continue
-        else:
-            total_turn_score += potential_score
-            print(f"Computer adds {potential_score} to its total score.")
-            return total_turn_score
+        # Select highest scoring combination
+        selected_score = max(possible_scores, key=possible_scores.get)
+        total_round_score += possible_scores[selected_score]
+        print(f"Computer decides to keep {', '.join(map(str, selected_score))} for {possible_scores[selected_score]} points.")
+
+        dice -= len(selected_score)
+
+        # Decision making
+        if total_round_score > 1000:
+            print(f"Computer decides to pass with a total round score of {total_round_score}.")
+            return total_round_score
+
+        if computer_score + total_round_score > 9500 and total_round_score > 300:
+            print(f"Computer decides to pass and get closer to winning with a total round score of {total_round_score}.")
+            return total_round_score
+
+        if total_round_score > 500 and dice <= 3:
+            print(f"Computer decides to pass with a decent score and not risk it with only {dice} dice left.")
+            return total_round_score
+
+        print(f"Computer decides to roll again despite getting {total_round_score} in this round.")
+    
+    return total_round_score
 
 def display_rules():
     print("\nWelcome to Farkle!")
