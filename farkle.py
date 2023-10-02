@@ -38,6 +38,10 @@ def calculate_score(dice):
                 dice.remove(d)
     return score
 
+def check_farkle(dice):
+    # If none of the dice rolls can be used for scoring, then it's a Farkle.
+    return calculate_score(list(dice)) == 0
+
 def player_turn():
     remaining_dice = 6
     turn_total = 0
@@ -46,6 +50,10 @@ def player_turn():
         time.sleep(1)  # pause to simulate dice rolling
         current_roll = roll_dice(remaining_dice)
         print(f"Current roll: {current_roll}")
+
+        if check_farkle(current_roll):
+            print("Farkle! You've earned no points this turn.")
+            return 0
 
         chosen_dice = input("Which dice do you want to keep? (enter space-separated numbers or 'done'): ").split()
 
@@ -85,11 +93,13 @@ def computer_turn(player_score, computer_score):
     while True:
         time.sleep(2)  # pause to simulate computer thinking and suspense
         dice = roll_dice()
-        score = calculate_score(list(dice))
+        print(f"Computer rolled: {dice}")  # Display computer's dice roll
 
-        if score == 0:  # Farkle!
+        if check_farkle(dice):
+            print("Computer Farkled!")
             return 0
 
+        score = calculate_score(list(dice))
         total_turn_score += score
 
         if strategy == "conservative" and total_turn_score >= 300:
@@ -109,7 +119,6 @@ def display_rules():
     print("\nThe first player to reach 10,000 points wins!")
 
 def play_game():
-    display_rules()
     player_score = 0
     computer_score = 0
     last_turn = False
