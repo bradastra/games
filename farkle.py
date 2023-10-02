@@ -1,4 +1,4 @@
-# Farkle Game - Version 1.0
+# farkle.py
 
 import random
 import time
@@ -17,7 +17,6 @@ Four or more of any number: Double the three of a kind score for each extra numb
 Press 'r' anytime during the game to see these rules again.
 """
 
-# Scoring rules
 SCORING_RULES = {
     (1,): 100,
     (5,): 50,
@@ -104,61 +103,27 @@ def player_turn():
         if action == 'P':
             return total_turn_score
 
-# Enhanced computer strategy
-def computer_play(total_score, player_score):
+def enhanced_computer_turn(player_score, computer_score):
+    total_turn_score = 0
     remaining_dice = 6
-    turn_score = 0
-    while remaining_dice > 0:
-        roll = roll_dice(remaining_dice)
-        print(f"\nComputer rolled: {roll}")
+    while True:
+        rolled_dice = roll_dice(remaining_dice)
+        print(f"\nComputer rolled: {rolled_dice}")
         time.sleep(2)
 
-        scoring_dice = [d for d in roll if d == 1 or d == 5]
-        if not scoring_dice:
-            print("\nFarkle!\n")
+        potential_score = calculate_score(rolled_dice)
+        if potential_score == 0:
+            print("Computer got a Farkle!")
             return 0
 
-        score_this_roll = calculate_score(scoring_dice)
-        turn_score += score_this_roll
-        for d in scoring_dice:
-            roll.remove(d)
-            remaining_dice -= 1
-
-        if not remaining_dice:
-            remaining_dice = 6
-
-        print(f"Computer kept: {scoring_dice} - Current turn score: {turn_score}")
-        time.sleep(1)
-
-    return turn_score
-
-def computer_turn():
-    remaining_dice = 6
-    turn_score = 0
-    while remaining_dice > 0:
-        roll = roll_dice(remaining_dice)
-        print(f"\nComputer rolled: {roll}")
-        time.sleep(2)
-
-        scoring_dice = [d for d in roll if d == 1 or d == 5]
-        if not scoring_dice:
-            print("\nFarkle!\n")
-            return 0
-
-        score_this_roll = calculate_score(scoring_dice)
-        turn_score += score_this_roll
-
-        for d in scoring_dice:
-            roll.remove(d)
-            remaining_dice -= 1
-
-        if not remaining_dice:
-            remaining_dice = 6
-
-        print(f"Computer kept: {scoring_dice} - Current turn score: {turn_score}")
-        time.sleep(1)
-
-    return turn_score
+        # Strategy: If the roll's score is below 300 or if the computer is trailing, it might take a risk and roll again.
+        if potential_score < 300 or computer_score + total_turn_score < player_score:
+            print(f"Computer decides to roll again despite getting {potential_score} in this roll.")
+            continue
+        else:
+            total_turn_score += potential_score
+            print(f"Computer adds {potential_score} to its total score.")
+            return total_turn_score
 
 def display_rules():
     print("\nWelcome to Farkle!")
@@ -172,21 +137,22 @@ def main():
         player_score += player_turn()
         print(f"\nYour total score: {player_score}")
 
-        # Adaptive strategy switch
-        if computer_score < player_score - 500:
-            computer_score += computer_play(computer_score, player_score)
-        else:
-            computer_score += computer_turn()
+        # Computer's turn
+        computer_score += enhanced_computer_turn(player_score, computer_score)
         print(f"Computer's total score: {computer_score}")
 
-        # Check if the player wants to view the rules
-        action = input("Press 'r' to see rules, 'x' to exit, or any other key to continue: ").lower()
-        if action == 'r':
-            display_rules()
-        elif action == 'x':
+        # Check if player has reached 10,000 and give computer a last turn
+        if player_score >= 10000:
+            print("\nYou've reached 10,000 points! Computer will now take its final turn.")
+            computer_score += enhanced_computer_turn(player_score, computer_score)
+            print(f"Computer's final score: {computer_score}")
             break
 
-        if player_score > 10000 or computer_score > 10000:
+        # Check if computer has reached 10,000 and give player a last turn
+        if computer_score >= 10000:
+            print("\nComputer has reached 10,000 points! You will now take your final turn.")
+            player_score += player_turn()
+            print(f"Your final score: {player_score}")
             break
 
     if player_score > computer_score:
