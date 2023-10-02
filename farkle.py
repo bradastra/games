@@ -35,7 +35,7 @@ def computer_turn(total_score):
     while remaining_dice > 0:
         roll = roll_dice(remaining_dice)
         print(f"Computer rolled: {roll}")
-        time.sleep(1)
+        time.sleep(2)  # Add suspense with a pause
 
         # Find all scoring dice
         scoring_dice = [d for d in roll if calculate_score((d,)) > 0]
@@ -59,7 +59,11 @@ def computer_turn(total_score):
             roll.remove(d)
             remaining_dice -= 1
 
-        print(f"Computer kept: {scoring_dice}")
+        # Reset dice count if all are used
+        if remaining_dice == 0:
+            remaining_dice = 6
+
+        print(f"Computer kept: {scoring_dice} - Current turn score: {turn_score}")
         time.sleep(1)
 
     return turn_score
@@ -77,13 +81,20 @@ def player_turn():
 
         # Calculate score based on player's choices
         chosen_dice = tuple(map(int, choices))
-        turn_score += calculate_score(chosen_dice)
+        score_for_this_roll = calculate_score(chosen_dice)
+        turn_score += score_for_this_roll
 
         # Remove chosen dice and continue
         for d in chosen_dice:
             roll = list(roll)
             roll.remove(d)
             remaining_dice -= 1
+
+        # Reset dice count if all are used
+        if remaining_dice == 0:
+            remaining_dice = 6
+
+        print(f"You kept: {chosen_dice} - Current turn score: {turn_score}")
 
     return turn_score
 
