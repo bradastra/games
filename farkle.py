@@ -12,7 +12,6 @@ SCORING_RULES = {
     (5, 5, 5): 500,
     (6, 6, 6): 600,
     (1, 2, 3, 4, 5, 6): 1500,
-    # Adding the more complex rules
     # Four of a kind, five of a kind, six of a kind
     (1, 1, 1, 1): 2000,
     (1, 1, 1, 1, 1): 3000,
@@ -24,47 +23,48 @@ def roll_dice(num=6):
 
 def calculate_score(dice):
     score = 0
-    for combo, combo_score in SCORING_RULES.items():
-        if all(dice.count(d) >= combo.count(d) for d in combo):
+    dice = list(dice)
+    for combo, combo_score in sorted(SCORING_RULES.items(), key=lambda x: (-len(x[0]), -x[1])):
+        while all(dice.count(d) >= combo.count(d) for d in combo):
             score += combo_score
+            for d in combo:
+                dice.remove(d)
     return score
 
-def computer_turn(total_score):
+def computer_turn(total_score, opponent_score):
     remaining_dice = 6
     turn_score = 0
     while remaining_dice > 0:
         roll = roll_dice(remaining_dice)
         print(f"Computer rolled: {roll}")
-        time.sleep(2)  # Add suspense with a pause
+        time.sleep(2)
 
         # Find all scoring dice
         scoring_dice = [d for d in roll if calculate_score((d,)) > 0]
         if not scoring_dice:
             return 0
 
-        # Decide to keep rolling or stop based on some simple strategy
-        if total_score + turn_score < 500:
-            # Always roll if not in the game yet
-            turn_score += calculate_score(roll)
-        elif len(scoring_dice) > 3 or random.random() < 0.5:
-            # Take a risk if there's a good number of scoring dice or 50% chance
-            turn_score += calculate_score(roll)
-        else:
-            # Otherwise end the turn
+        # Strategy decision
+        score_diff = opponent_score - total_score
+        risk_factor = 0.5 if score_diff < 500 else 0.7
+        should_continue = len(scoring_dice) > 3 or random.random() < risk_factor
+
+        if not should_continue:
             return turn_score
 
-        # Remove scoring dice and continue
+        turn_score += calculate_score(scoring_dice)
+        print(f"Computer kept: {scoring_dice} - Current turn score: {turn_score}")
+        time.sleep(1)
+
+        # Update remaining dice
         for d in scoring_dice:
             roll = list(roll)
             roll.remove(d)
             remaining_dice -= 1
 
-        # Reset dice count if all are used
+        # Reset dice if all are used
         if remaining_dice == 0:
             remaining_dice = 6
-
-        print(f"Computer kept: {scoring_dice} - Current turn score: {turn_score}")
-        time.sleep(1)
 
     return turn_score
 
@@ -74,27 +74,38 @@ def player_turn():
     while remaining_dice > 0:
         roll = roll_dice(remaining_dice)
         print(f"Current roll: {roll}")
-        
+
         choices = input("Which dice do you want to keep? (enter space-separated numbers or 'done'): ").split()
         if "done" in choices:
-            break
+            return turn_score
 
-        # Calculate score based on player's choices
+        # Input validation
         chosen_dice = tuple(map(int, choices))
-        score_for_this_roll = calculate_score(chosen_dice)
-        turn_score += score_for_this_roll
+        if not all(chosen_dice.count(d) <= roll.count(d) for d in chosen_dice):
+            print("Invalid dice selection. Try again.")
+            continue
 
-        # Remove chosen dice and continue
+        score_for_this_roll = calculate_score(chosen_dice)
+        if score_for_this_roll == 0:
+            print("Non-scoring dice selected. Try again.")
+            continue
+
+        turn_score += score_for_this_roll
+        print(f"You kept: {chosen_dice} - Current turn score: {turn_score}")
+
+        # Update remaining dice
         for d in chosen_dice:
             roll = list(roll)
             roll.remove(d)
             remaining_dice -= 1
 
-        # Reset dice count if all are used
+        # Reset dice if all are used
         if remaining_dice == 0:
             remaining_dice = 6
 
-        print(f"You kept: {chosen_dice} - Current turn score: {turn_score}")
+        choice = input("Would you like to roll again or stay? (roll/stay): ").strip().lower()
+        if choice == "stay":
+            break
 
     return turn_score
 
@@ -113,16 +124,25 @@ def main():
 
     display_rules()
 
-    while player_score < 10000 and computer_score < 10000:
+    player_had_final_turn = False
+    computer_had_final_turn = False
+
+    while True:
         print("\nYour turn!")
         player_score += player_turn()
         print(f"Your total score: {player_score}")
-        if player_score >= 10000:
-            break
+        if player_score >= 10000 and not player_had_final_turn:
+            player_had_final_turn = True
+            if computer_had_final_turn:
+                break
 
         print("\nComputer's turn!")
-        computer_score += computer_turn(computer_score)
+        computer_score += computer_turn(computer_score, player_score)
         print(f"Computer's total score: {computer_score}")
+        if computer_score >= 10000 and not computer_had_final_turn:
+            computer_had_final_turn = True
+            if player_had_final_turn:
+                break
 
     print("Game over!")
     if player_score > computer_score:
