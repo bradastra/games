@@ -1,10 +1,9 @@
-# farkle.py
-
 import random
 import time
 
-# Game rules & scoring
-RULES = """Rules & Scoring:
+RULES = """
+Welcome to Farkle!
+Rules & Scoring:
 1: 100 points
 5: 50 points
 Three 1's: 1000 points
@@ -17,163 +16,117 @@ Four or more of any number: Double the three of a kind score for each extra numb
 Press 'r' anytime during the game to see these rules again.
 """
 
-SCORING_RULES = {
-    (1,): 100,
-    (5,): 50,
-    (1, 1, 1): 1000,
-    (2, 2, 2): 200,
-    (3, 3, 3): 300,
-    (4, 4, 4): 400,
-    (5, 5, 5): 500,
-    (6, 6, 6): 600,
-    (1, 1, 1, 1): 2000,
-    (2, 2, 2, 2): 400,
-    (3, 3, 3, 3): 600,
-    (4, 4, 4, 4): 800,
-    (5, 5, 5, 5): 1000,
-    (6, 6, 6, 6): 1200,
-    (1, 1, 1, 1, 1): 3000,
-    (2, 2, 2, 2, 2): 500,
-    (3, 3, 3, 3, 3): 750,
-    (4, 4, 4, 4, 4): 1000,
-    (5, 5, 5, 5, 5): 1250,
-    (6, 6, 6, 6, 6): 1500,
-    (1, 1, 1, 1, 1, 1): 4000,
-    (2, 2, 2, 2, 2, 2): 1600,
-    (3, 3, 3, 3, 3, 3): 1800,
-    (4, 4, 4, 4, 4, 4): 2000,
-    (5, 5, 5, 5, 5, 5): 2200,
-    (6, 6, 6, 6, 6, 6): 2400,
-    (1, 2, 3, 4, 5, 6): 1500, # Run: 1, 2, 3, 4, 5, 6
-    (1, 1, 2, 2, 3, 3): 1500,
-    (4, 4, 5, 5, 6, 6): 1500
-}
+def roll_dice(num_dice):
+    return [random.randint(1, 6) for _ in range(num_dice)]
 
-def roll_dice(num=6):
-    return [random.choice(range(1, 7)) for _ in range(num)]
-
-def calculate_score(dice):
-    dice = sorted(dice)
+def calculate_score(roll):
     score = 0
-    for combination, combination_score in sorted(SCORING_RULES.items(), key=lambda x: len(x[0]), reverse=True):
-        while all(dice.count(die) >= combination.count(die) for die in combination):
-            score += combination_score
-            for die in combination:
-                dice.remove(die)
+    counts = {i: roll.count(i) for i in range(1,7)}
+
+    # Check for 1's and 5's first
+    score += counts[1] * 100
+    score += counts[5] * 50
+
+    # Check for three or more of a kind for all numbers
+    for number, count in counts.items():
+        if count >= 3:
+            if number == 1:
+                score += 1000
+            else:
+                score += number * 100
+            # For more than 3 of a kind, double the score for each extra number
+            score += (count - 3) * score
+
+    # Subtract the appropriate amount for 1's and 5's since they were added previously
+    if counts[1] >= 3:
+        score -= 300
+    if counts[5] >= 3:
+        score -= 150
+
     return score
 
-def choose_dice_to_keep(rolled_dice):
-    while True:
-        try:
-            kept_dice = input("Enter dice to keep (e.g. 456): ")
-            kept_dice_list = [int(die) for die in kept_dice]
-            if all(die in rolled_dice for die in kept_dice_list):
-                return kept_dice_list
-            else:
-                print("You can only choose dice that you rolled.")
-        except ValueError:
-            print("Please enter valid dice numbers.")
-
 def player_turn():
-    total_turn_score = 0
     remaining_dice = 6
-    input("\nYour turn! Press Enter to roll the dice...")
+    total_turn_score = 0
+
     while remaining_dice > 0:
-        rolled_dice = roll_dice(remaining_dice)
-        print(f"\nYou rolled: {rolled_dice}")
+        roll = roll_dice(remaining_dice)
+        print("\nYou rolled:", roll)
+        while True:
+            try:
+                dice_to_keep = input("Enter dice to keep (e.g. 456): ")
+                if dice_to_keep == 'r':
+                    print(RULES)
+                    continue
+                kept_dice = [int(i) for i in dice_to_keep]
+                if all(x in roll for x in kept_dice):
+                    break
+            except ValueError:
+                print("Invalid input. Please enter numbers from the roll.")
 
-        kept_dice = choose_dice_to_keep(rolled_dice)
-        score_this_roll = calculate_score(kept_dice)
-
-        if score_this_roll == 0:
-            print("Farkle!")
-            return 0
-
-        total_turn_score += score_this_roll
-        print(f"Score this roll: {score_this_roll}")
-
-        for die in kept_dice:
-            rolled_dice.remove(die)
-        remaining_dice -= len(kept_dice)
-
-        if not remaining_dice:
-            remaining_dice = 6
-
+        turn_score = calculate_score(kept_dice)
+        total_turn_score += turn_score
+        print(f"Score this roll: {turn_score}\n")
         action = input("\nDo you want to (P)ass or (R)oll again? ").upper()
         if action == 'P':
             return total_turn_score
 
-def enhanced_computer_turn():
-    dice = 6
-    total_round_score = 0
+        remaining_dice -= len(kept_dice)
+        if remaining_dice == 0:
+            remaining_dice = 6
 
-    while dice:
-        roll = roll_dice(dice)
-        print(f"\nComputer rolled: {roll}")
-        possible_scores = calculate_possible_scores(roll)
-        
-        if not possible_scores:
+def enhanced_computer_turn(player_score, computer_score):
+    total_turn_score = 0
+    remaining_dice = 6
+    while True:
+        rolled_dice = roll_dice(remaining_dice)
+        print(f"\nComputer rolled: {rolled_dice}")
+        time.sleep(2)
+
+        potential_score = calculate_score(rolled_dice)
+        if potential_score == 0:
             print("Computer got a Farkle!")
             return 0
 
-        # Select highest scoring combination
-        selected_score = max(possible_scores, key=possible_scores.get)
-        total_round_score += possible_scores[selected_score]
-        print(f"Computer decides to keep {', '.join(map(str, selected_score))} for {possible_scores[selected_score]} points.")
-
-        dice -= len(selected_score)
-
-        # Decision making
-        if total_round_score > 1000:
-            print(f"Computer decides to pass with a total round score of {total_round_score}.")
-            return total_round_score
-
-        if computer_score + total_round_score > 9500 and total_round_score > 300:
-            print(f"Computer decides to pass and get closer to winning with a total round score of {total_round_score}.")
-            return total_round_score
-
-        if total_round_score > 500 and dice <= 3:
-            print(f"Computer decides to pass with a decent score and not risk it with only {dice} dice left.")
-            return total_round_score
-
-        print(f"Computer decides to roll again despite getting {total_round_score} in this round.")
-    
-    return total_round_score
+        if potential_score < 300 or computer_score + total_turn_score < player_score:
+            print(f"Computer decides to roll again despite getting {potential_score} in this roll.")
+            continue
+        else:
+            total_turn_score += potential_score
+            print(f"Computer adds {potential_score} to its total score.")
+            return total_turn_score
 
 def display_rules():
-    print("\nWelcome to Farkle!")
     print(RULES)
 
 def main():
     display_rules()
     player_score = 0
     computer_score = 0
+
     while True:
+        print(f"\nYour score: {player_score} | Computer's score: {computer_score}")
+        input("\nYour turn! Press Enter to roll the dice...")
         player_score += player_turn()
-        print(f"\nYour total score: {player_score}")
-
-        # Computer's turn
-        computer_score += enhanced_computer_turn(player_score, computer_score)
-        print(f"Computer's total score: {computer_score}")
-
-        # Check if player has reached 10,000 and give computer a last turn
         if player_score >= 10000:
-            print("\nYou've reached 10,000 points! Computer will now take its final turn.")
+            print("\nYou reached 10,000 points!")
+            input("Press Enter for the computer's last turn...")
             computer_score += enhanced_computer_turn(player_score, computer_score)
-            print(f"Computer's final score: {computer_score}")
             break
-
-        # Check if computer has reached 10,000 and give player a last turn
+        computer_score += enhanced_computer_turn(player_score, computer_score)
         if computer_score >= 10000:
-            print("\nComputer has reached 10,000 points! You will now take your final turn.")
+            print("\nThe computer reached 10,000 points!")
+            input("Press Enter for your last turn...")
             player_score += player_turn()
-            print(f"Your final score: {player_score}")
             break
 
+    print(f"\nFinal score: You: {player_score} | Computer: {computer_score}")
     if player_score > computer_score:
-        print("\nCongratulations! You won!")
+        print("Congratulations! You won!")
+    elif player_score < computer_score:
+        print("The computer won! Better luck next time.")
     else:
-        print("\nSorry, the computer won this time.")
+        print("It's a tie!")
 
 if __name__ == "__main__":
     main()
