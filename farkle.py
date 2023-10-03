@@ -43,22 +43,22 @@ def calculate_score(dice):
 def ask_to_keep(rolled_dice):
     while True:
         print("Dice: " + " ".join(map(str, rolled_dice)))
-        kept_dice = input("Enter dice to keep (or nothing to roll again), separated by spaces: ").split()
-        if not kept_dice:
-            return []
-        kept_dice = [int(d) for d in kept_dice]
+        kept_input = input("Enter dice to keep (or nothing to roll again), separated by spaces: ").split()
         
-        if all(d in rolled_dice for d in kept_dice):
+        try:
+            kept_dice = [int(d) for d in kept_input]
+            
+            if not all(1 <= d <= 6 for d in kept_dice):
+                raise ValueError("Dice values should be between 1 and 6.")
+            
+            if not all(rolled_dice.count(d) >= kept_dice.count(d) for d in kept_dice):
+                raise ValueError("You can't keep dice values more times than they were rolled.")
+            
             return kept_dice
-        else:
-            print("Invalid dice chosen. Please choose again from the dice rolled.")
+        except ValueError as e:
+            print(f"Invalid input: {e}. Please choose again from the dice rolled.")
 
 def computer_strategy(rolled_dice, score_diff):
-    # Basic strategy:
-    # - Always keep scoring dice.
-    # - If score of current turn is less than 300 and more dice can be rolled, continue rolling.
-    # - If ahead by a significant margin (say, 1000 points), play conservatively.
-    # - If trailing by a significant margin, play more aggressively.
     kept = []
     potential_score = calculate_score(rolled_dice)
     
@@ -75,41 +75,54 @@ def computer_strategy(rolled_dice, score_diff):
         return rolled_dice
     return kept
 
-def turn(is_human, player_score, computer_score):
+def score_roll(rolled_dice, is_human, opponent_score):
+    if is_human:
+        kept_dice = ask_to_keep(rolled_dice)
+    else:
+        score_diff = opponent_score - (player_score if is_human else computer_score)  # Estimate the score difference
+        kept_dice = computer_strategy(rolled_dice, score_diff)
+
+    # If the dice kept equals the dice rolled, player gets to use all six dice on their next roll.
+    if len(kept_dice) == len(rolled_dice):
+        print("\nYou've scored with all dice! You get a Free Roll with all six dice!")
+        available_dice = 6
+    else:
+        available_dice = 6 - len(kept_dice)
+
+    score = calculate_score(kept_dice)
+    return score, kept_dice, available_dice
+
+def turn(is_human, player_score, opponent_score):
     total_score = 0
     available_dice = 6
     
     while True:
         rolled_dice = roll_dice(available_dice)
-        if is_human:
-            print(f"\nDice rolled: {' '.join(map(str, rolled_dice))}")
-            kept_dice = ask_to_keep(rolled_dice)
-        else:
-            time.sleep(2)
-            score_diff = player_score - computer_score
-            kept_dice = computer_strategy(rolled_dice, score_diff)
-            print(f"Computer keeps: {' '.join(map(str, kept_dice))}")
-
-        score = calculate_score(kept_dice)
+        print(f"\n{'Your' if is_human else 'Computer\'s'} Dice rolled: {' '.join(map(str, rolled_dice))}") 
+        
+        score, kept_dice, available_dice = score_roll(rolled_dice, is_human, opponent_score)  # Opponent's score is passed here
+        
         if score == 0:
             return 0
         
         total_score += score
-        available_dice -= len(kept_dice)
 
-        # Handle Full Dice Reset
-        if len(kept_dice) == available_dice:
-            print("\nYou've scored with all dice! You get a Free Roll with all six dice!")
-            available_dice = 6
-        
         if is_human:
+            # For human player
             print(f"\nCurrent Turn Score: {total_score}")
-            decision = input("Press Enter to roll again or type 'stay' to keep your points: ").strip().lower()
+            while True:
+                decision = input("Press Enter to roll again or type 'stay' to keep your points: ").strip().lower()
+                if decision in ["", "stay"]:
+                    break
+                print("Invalid input. Please press Enter or type 'stay'.")
+            
             if decision == "stay":
                 return total_score
         else:
-            # Computer decision-making logic
-            if total_score >= 500 and (available_dice == 0 or random.random() > 0.5):
+            # For computer player
+            print(f"Computer keeps: {' '.join(map(str, kept_dice))}")
+            # Decision-making for the computer
+            if total_score >= 500 and (total_score > score_diff or available_dice == 0 or random.random() > 0.5):
                 print(f"Computer ends turn with {total_score} points.")
                 return total_score
             time.sleep(2)
@@ -156,4 +169,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
