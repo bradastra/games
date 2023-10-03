@@ -79,7 +79,7 @@ def score_roll(rolled_dice, is_human, opponent_score):
     if is_human:
         kept_dice = ask_to_keep(rolled_dice)
     else:
-        score_diff = opponent_score - (player_score if is_human else computer_score)  # Estimate the score difference
+        score_diff = opponent_score - (player_score if is_human else computer_score)
         kept_dice = computer_strategy(rolled_dice, score_diff)
 
     # If the dice kept equals the dice rolled, player gets to use all six dice on their next roll.
@@ -100,7 +100,7 @@ def turn(is_human, player_score, opponent_score):
         rolled_dice = roll_dice(available_dice)
         print("\n" + ('Your' if is_human else "Computer's") + " Dice rolled: " + ' '.join(map(str, rolled_dice)))
         
-        score, kept_dice, available_dice = score_roll(rolled_dice, is_human, opponent_score)  # Opponent's score is passed here
+        score, kept_dice, available_dice = score_roll(rolled_dice, is_human, opponent_score, player_score, computer_score)  # Opponent's score is passed here
         
         if score == 0:
             return 0
