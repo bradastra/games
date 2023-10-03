@@ -75,11 +75,11 @@ def computer_strategy(rolled_dice, score_diff):
         return rolled_dice
     return kept
 
-def score_roll(rolled_dice, is_human, opponent_score):
+def score_roll(rolled_dice, is_human, player_score, opponent_score):     
     if is_human:
         kept_dice = ask_to_keep(rolled_dice)
     else:
-        score_diff = opponent_score - (player_score if is_human else computer_score)
+        score_diff = opponent_score - player_score
         kept_dice = computer_strategy(rolled_dice, score_diff)
 
     # If the dice kept equals the dice rolled, player gets to use all six dice on their next roll.
@@ -100,7 +100,7 @@ def turn(is_human, player_score, opponent_score):
         rolled_dice = roll_dice(available_dice)
         print("\n" + ('Your' if is_human else "Computer's") + " Dice rolled: " + ' '.join(map(str, rolled_dice)))
         
-        score, kept_dice, available_dice = score_roll(rolled_dice, is_human, opponent_score, player_score, computer_score)  # Opponent's score is passed here
+        score, kept_dice, available_dice = score_roll(rolled_dice, is_human, player_score, opponent_score) 
         
         if score == 0:
             return 0
@@ -122,7 +122,7 @@ def turn(is_human, player_score, opponent_score):
             # For computer player
             print(f"Computer keeps: {' '.join(map(str, kept_dice))}")
             # Decision-making for the computer
-            if total_score >= 500 and (total_score > score_diff or available_dice == 0 or random.random() > 0.5):
+            if total_score >= 500 and (available_dice == 0 or random.random() > 0.5):
                 print(f"Computer ends turn with {total_score} points.")
                 return total_score
             time.sleep(2)
