@@ -96,14 +96,14 @@ def turn(is_human, player_score, opponent_score):
     total_score = 0
     available_dice = 6
     
-    while True:
-        rolled_dice = roll_dice(available_dice)
-        print(f"\n{'Your' if is_human else 'Computer\'s'} Dice rolled: {' '.join(map(str, rolled_dice))}") 
-        
-        score, kept_dice, available_dice = score_roll(rolled_dice, is_human, opponent_score)  # Opponent's score is passed here
-        
-        if score == 0:
-            return 0
+while True:
+    rolled_dice = roll_dice(available_dice)
+    print("\n" + ('Your' if is_human else "Computer's") + " Dice rolled: " + ' '.join(map(str, rolled_dice)))
+    
+    score, kept_dice, available_dice = score_roll(rolled_dice, is_human, opponent_score)  # Opponent's score is passed here
+    
+    if score == 0:
+        return 0
         
         total_score += score
 
