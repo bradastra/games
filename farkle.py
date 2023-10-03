@@ -75,70 +75,75 @@ def computer_strategy(rolled_dice, score_diff):
         return rolled_dice
     return kept
 
-def turn(is_player, player_score, computer_score):
-    rolled_dice = roll_dice(6)
-    turn_score = 0
-    score_diff = player_score - computer_score
+def turn(is_human, opponent_score):
+    total_score = 0
+    available_dice = 6
+    
     while True:
-        print("\nDice rolled: " + " ".join(map(str, rolled_dice)))
-        if calculate_score(rolled_dice) == 0:
-            print("Farkle!")
+        rolled_dice = roll_dice(available_dice)
+        if is_human:
+            print(f"\nDice rolled: {' '.join(map(str, rolled_dice))}")
+        
+        score, kept_dice = score_roll(rolled_dice)
+        if score == 0:
             return 0
-        if is_player:
-            kept_dice = ask_to_keep(rolled_dice)
+        
+        total_score += score
+        available_dice -= len(kept_dice)
+        
+        if is_human:
+            # For human player
+            print(f"\nCurrent Turn Score: {total_score}")
+            decision = input("Press Enter to roll again or type 'stay' to keep your points: ").strip().lower()
+            if decision == "stay":
+                return total_score
         else:
+            # For computer player
+            print(f"Computer keeps: {' '.join(map(str, kept_dice))}")
+            # Decision-making for the computer
+            if total_score >= 500 and (total_score > opponent_score or available_dice == 0 or random.random() > 0.5):
+                print(f"Computer ends turn with {total_score} points.")
+                return total_score
             time.sleep(2)
-            kept_dice = computer_strategy(rolled_dice, score_diff)
-            print("Computer keeps: " + " ".join(map(str, kept_dice)))
-        
-        if not kept_dice:
-            rolled_dice = roll_dice(len(rolled_dice))
-            continue
-        
-        turn_score += calculate_score(kept_dice)
-        remaining_dice = len(rolled_dice) - len(kept_dice)
-        
-        if remaining_dice == 0:
-            rolled_dice = roll_dice(6)
-        else:
-            for d in kept_dice:
-                rolled_dice.remove(d)
-            rolled_dice.extend(roll_dice(remaining_dice))
-        
-        if is_player:
-            print(f"\nCurrent Turn Score: {turn_score}")
-            choice = input("Press Enter to roll again or type 'stay' to keep your points: ").strip().lower()
-            if choice == 'stay':
-                return turn_score
 
 def main():
-    print("\nWelcome to Farkle!")
-    print(RULES)
     player_score = 0
     computer_score = 0
-    while player_score < 10000 and computer_score < 10000:
-        print("\n============================")
-        print(f"Current Scores:\nPlayer: {player_score}\nComputer: {computer_score}")
-        print("============================\n")
+
+    print_welcome()
+
+    while True:
+        print_scores(player_score, computer_score)
         
-        print("Your turn! Press Enter to roll the dice...")
+        print("\nYour turn! Press Enter to roll the dice...")
         input()
-        player_score += turn(True, player_score, computer_score)
-        
-        if player_score < 10000:
-            print("\nComputer's turn... Press Enter for the computer to roll the dice.")
+        player_score += turn(True, computer_score)
+
+        if player_score >= 10000:
+            print("\nComputer's turn to try and beat your score... Press Enter for the computer to roll the dice.")
             input()
-            computer_score += turn(False, player_score, computer_score)
-        else:
+            computer_score += turn(False, player_score)
+            print_scores(player_score, computer_score)
+            if computer_score > player_score:
+                print("\nComputer wins!")
+            else:
+                print("\nYou win!")
             break
-    
-    # Final scoring announcement
-    if player_score > computer_score:
-        print(f"\nCongratulations! You win with a score of {player_score} to {computer_score}!")
-    elif computer_score > player_score:
-        print(f"\nComputer wins with a score of {computer_score} to {player_score}. Better luck next time!")
-    else:
-        print(f"\nIt's a tie! Both you and the computer have a score of {player_score}.")
+        
+        print("\nComputer's turn... Press Enter for the computer to roll the dice.")
+        input()
+        computer_score += turn(False, player_score)
+        
+        if computer_score >= 10000:
+            print("\nYour final turn to try and beat the computer's score... Press Enter to roll the dice.")
+            input()
+            player_score += turn(True, computer_score)
+            print_scores(player_score, computer_score)
+            if player_score > computer_score:
+                print("\nYou win!")
+            else:
+                print("\nComputer wins!")
+            break
 
 if __name__ == "__main__":
     main()
